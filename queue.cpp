@@ -93,11 +93,11 @@ public:
         if (file.is_open()) {
             tm *ltm = localtime(&o.waktuMasuk);
             file << "ID: " << o.id << ", Nama: " << o.nama << ", No Telp : " << o.notelp << ", Masuk: "
-                 << 1900 + ltm->tm_year << "-"
-                 << setw(2) << setfill('0') << 1 + ltm->tm_mon << "-"
-                 << setw(2) << setfill('0') << ltm->tm_mday << " "
-                 << setw(2) << setfill('0') << ltm->tm_hour << ":"
-                 << setw(2) << setfill('0') << ltm->tm_min << ":"
+                 << 1900 + ltm->tm_year
+                 << setw(2) << setfill('0') << 1 + ltm->tm_mon 
+                 << setw(2) << setfill('0') << ltm->tm_mday 
+                 << setw(2) << setfill('0') << ltm->tm_hour 
+                 << setw(2) << setfill('0') << ltm->tm_min 
                  << setw(2) << setfill('0') << ltm->tm_sec << endl;
             file.close();
         } else {
@@ -106,23 +106,47 @@ public:
     }
 
     void dequeue() {
+        ofstream file("history.txt", ios::app); // Buat file untuk menyimpan data keluar
         if (isEmpty()) {
             cout << RED << "Antrian Kosong!" << RESET << endl;
             return;
         }
 
         Orang keluar = data[front];
-        time_t waktu_keluar = time(0);
-        double durasi = difftime(waktu_keluar, keluar.waktuMasuk);
+
+        // Input jam dan menit keluar
+        tm waktuKeluar = *localtime(&keluar.waktuMasuk);
+        cout << "Masukkan jam keluar (0-23): ";
+        cin >> waktuKeluar.tm_hour;
+        cout << "Masukkan menit keluar (0-59): ";
+        cin >> waktuKeluar.tm_min;
+        waktuKeluar.tm_sec = 0;
+
+        // Konversi ke time_t
+        time_t waktuKeluarTime = mktime(&waktuKeluar);
+        double detik = difftime(waktuKeluarTime, keluar.waktuMasuk);
+        int menit = detik / 60;
+        int jam = menit / 60;
+        int sisaDetik = int(detik) % 60;
 
         cout << BOLD GREEN << "ID: " << keluar.id << "\n";
         cout << "Nama: " << keluar.nama << "\n";
-        cout << "Masuk: " << ctime(&keluar.waktuMasuk);
-        cout << "Keluar: " << ctime(&waktu_keluar);
-        cout << "Service Time: " << durasi << " detik\n" << RESET;
+        cout << "Waktu Masuk: " << ctime(&keluar.waktuMasuk);
+        cout << "Waktu Keluar: " << ctime(&waktuKeluarTime);
+        cout << "Service Time: " << jam << " jam " << menit << " menit " << sisaDetik << " detik\n" << RESET;
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
 
-        totalServiceTime += durasi;
+        // Simpan ke file history
+        if (file.is_open()) {
+            file << "ID: " << keluar.id << ", Nama: " << keluar.nama
+                 << ", Waktu Masuk: " << ctime(&keluar.waktuMasuk)
+                 << ", Waktu Keluar: " << ctime(&waktuKeluarTime)
+                 << ", Service Time: " << jam << " jam " << menit << " menit " << sisaDetik << " detik\n";
+            file.close();
+        } else {
+            cout << RED << "Gagal membuka file history!" << RESET << endl;
+        }
+        totalServiceTime += detik;
         totalServed++;
         front++;
 
