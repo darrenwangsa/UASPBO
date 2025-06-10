@@ -56,6 +56,7 @@ public:
     }
 
     void enqueue() {
+        updateQueue();
         if (isFull()) {
             cout << RED << "Queue Penuh" << RESET << endl;
             return;
@@ -73,7 +74,7 @@ public:
 
         Orang o;
         o.nama = nama;
-        o.id = nextId++;
+        o.id = lastId;
         o.waktuMasuk = time(0); // Ambil waktu saat ini
         o.notelp = notelp;
 
@@ -91,14 +92,13 @@ public:
     void logToFile(Orang o) {
         ofstream file("antrian_log.txt", ios::app);
         if (file.is_open()) {
-            tm *ltm = localtime(&o.waktuMasuk);
-            file << o.id << "|" << o.nama << "|" << o.notelp << "|"
-                 << o.waktuMasuk << endl;
+            file << o.id << "|" << o.nama << "|" << o.notelp << "|" << o.waktuMasuk << endl;
             file.close();
         } else {
             cout << RED << "Gagal membuka file log!" << RESET << endl;
         }
     }
+
 
     void updateQueue() {
         string x;
@@ -107,28 +107,25 @@ public:
         int i = 0;
         lastId = 0;
 
-        while (getline(readFile, x) && i < MAX) {
+        while(getline(readFile, x) && i < MAX){
             stringstream ss(x);
-            string idTemp, namaTemp, notelpTemp, timeStr;
+            string idTemp, namaTemp, notelpTemp, timeTemp;
 
             getline(ss, idTemp, '|');
             getline(ss, namaTemp, '|');
             getline(ss, notelpTemp, '|');
-            getline(ss, timeStr); // ini adalah time_t sebagai string angka
+            getline(ss, timeTemp); // waktu dalam bentuk time_t string
 
             data[i].id = stoi(idTemp);
             data[i].nama = namaTemp;
             data[i].notelp = notelpTemp;
-
-            // Konversi string ke time_t
-            data[i].waktuMasuk = static_cast<time_t>(stoll(timeStr));
+            data[i].waktuMasuk = stol(timeTemp); // konversi string ke time_t
 
             if (data[i].id > lastId)
                 lastId = data[i].id;
 
             i++;
         }
-
         readFile.close();
 
         if (i > 0) {
@@ -137,54 +134,47 @@ public:
         } else {
             front = rear = -1;
         }
-
-        nextId = lastId + 1;
     }
+
 
     void dequeue() {
         updateQueue();
-        ofstream file("history.txt", ios::app);
+        ofstream file("history.txt", ios::app); // Buat file untuk menyimpan data keluar
         if (isEmpty()) {
             cout << RED << "Antrian Kosong!" << RESET << endl;
             return;
         }
-
+        Orang o;
         Orang keluar = data[front];
 
-        // Ambil tanggal dari waktu masuk
+        // Input jam dan menit keluar
         tm waktuKeluar = *localtime(&keluar.waktuMasuk);
-
         cout << "Masukkan jam keluar (0-23): ";
         cin >> waktuKeluar.tm_hour;
         cout << "Masukkan menit keluar (0-59): ";
         cin >> waktuKeluar.tm_min;
         waktuKeluar.tm_sec = 0;
 
+        // Konversi ke time_t
         time_t waktuKeluarTime = mktime(&waktuKeluar);
-
         double detik = difftime(waktuKeluarTime, keluar.waktuMasuk);
-        if (detik < 0) {
-            cout << RED << "Jam keluar tidak valid! Harus setelah waktu masuk." << RESET << endl;
-            return;
-        }
-
         int menit = detik / 60;
         int jam = menit / 60;
-        int sisaMenit = menit % 60;
-        int sisaDetik = (int)detik % 60;
+        int sisaDetik = int(detik) % 60;
 
         cout << BOLD GREEN << "ID: " << keluar.id << "\n";
         cout << "Nama: " << keluar.nama << "\n";
         cout << "Waktu Masuk: " << ctime(&keluar.waktuMasuk);
         cout << "Waktu Keluar: " << ctime(&waktuKeluarTime);
-        cout << "Service Time: " << jam << " jam " << sisaMenit << " menit " << sisaDetik << " detik\n" << RESET;
+        cout << "Service Time: " << jam << " jam " << menit << " menit " << sisaDetik << " detik\n" << RESET;
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
 
+        // Simpan ke file history
         if (file.is_open()) {
             file << "ID: " << keluar.id << ", Nama: " << keluar.nama
-                << ", Waktu Masuk: " << ctime(&keluar.waktuMasuk)
-                << ", Waktu Keluar: " << ctime(&waktuKeluarTime)
-                << ", Service Time: " << jam << " jam " << sisaMenit << " menit " << sisaDetik << " detik\n";
+                 << ", Waktu Masuk: " << ctime(&keluar.waktuMasuk)
+                 << ", Waktu Keluar: " << ctime(&waktuKeluarTime)
+                 << ", Service Time: " << jam << " jam " << menit << " menit " << sisaDetik << " detik\n";
             file.close();
         } else {
             cout << RED << "Gagal membuka file history!" << RESET << endl;
@@ -223,11 +213,7 @@ public:
             return;
         }
         double rata = totalServiceTime / totalServed;
-        int menit = rata / 60;
-        int jam = menit / 60;
-        int sisaMenit = menit % 60;
-        int sisaDetik = (int)rata % 60;
-        cout << YELLOW << "Rata-rata service time: "  << jam << " Jam " << menit << " Menit " << rata << " detik\n" << RESET;
+        cout << YELLOW << "Rata-rata service time: " << rata << " detik\n" << RESET;
     }
 
     void display() {
@@ -239,11 +225,16 @@ public:
 
         cout << YELLOW << "Isi antrian:\n";
         for (int i = front; i <= rear; ++i) {
+            tm *ltm = localtime(&data[i].waktuMasuk);
             cout << BOLD GREEN << " - ID: " << data[i].id
-                 << ", Nama: " << data[i].nama
-                 << ", Masuk: " << ctime(&data[i].waktuMasuk) << RESET;
+                << ", Nama: " << data[i].nama
+                << ", Masuk: " << setfill('0')
+                << setw(2) << ltm->tm_hour << ":"
+                << setw(2) << ltm->tm_min << ":"
+                << setw(2) << ltm->tm_sec << RESET << endl;
         }
     }
+
 };
 
 int main() {
@@ -252,6 +243,7 @@ int main() {
     string nama, loop;
 
     do {
+        q.updateQueue();
         system("cls");
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl
              << setfill(' ') << setw(30) << " " << BOLD BLUE << "Tugas 4 Pemrograman Berorientasi Objek\n"
