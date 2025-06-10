@@ -1,0 +1,212 @@
+/*******************
+ * Nama File : A03_241402074_01.cpp
+ * Pembuat : Andrian James Siregar
+ *           Darren Wangsa
+ *           Sanny Lie
+ * Deskripsi : Program ini adalah program queue yang dapat digunakan pada sistem antri dari restoran.
+ ******************/
+
+#include <iostream>
+#include <queue>
+#include <ctime>
+#include <iomanip>
+#include <fstream> // Buat file
+
+#define RESET "\033[0m"
+#define BOLD "\033[1m"
+#define GREEN "\033[32m"
+#define RED "\033[31m"
+#define CYAN "\033[36m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[94m"
+
+const int MAX = 100;
+
+using namespace std;
+
+struct Orang {
+    int id;
+    string nama, notelp;
+    time_t waktuMasuk; // Ganti chrono jadi time_t
+};
+
+class Queue {
+private:
+    Orang data[MAX];
+    int front, rear;
+    int nextId;
+    double totalServiceTime;
+    int totalServed;
+
+public:
+    Queue() {
+        nextId = 1;
+        totalServiceTime = 0;
+        totalServed = 0;
+        front = -1;
+        rear = -1;
+    }
+
+    bool isEmpty() {
+        return front == -1 || front > rear;
+    }
+
+    bool isFull() {
+        return rear == MAX - 1;
+    }
+
+    void enqueue() {
+        if (isFull()) {
+            cout << RED << "Queue Penuh" << RESET << endl;
+            return;
+        }
+        string nama, notelp;
+
+        cout << GREEN << "Masukkan nama: ";
+        getline(cin, nama);
+        cout << GREEN << "Masukkan nomor telepon: ";
+        getline(cin, notelp);
+        if (nama.empty() || notelp.empty()) {
+            cout << RED << "Nama dan nomor telepon tidak boleh kosong!" << RESET << endl;
+            return;
+        }
+
+        Orang o;
+        o.nama = nama;
+        o.id = nextId++;
+        o.waktuMasuk = time(0); // Ambil waktu saat ini
+        o.notelp = notelp;
+
+        if (isEmpty()) {
+            front = 0;
+        }
+        rear++;
+        data[rear] = o;
+
+        cout << BOLD BLUE << nama << RESET GREEN << " telah terdaftar.\n";
+
+        logToFile(o); // Simpan data ke file
+    }
+
+    void logToFile(Orang o) {
+        ofstream file("antrian_log.txt", ios::app);
+        if (file.is_open()) {
+            tm *ltm = localtime(&o.waktuMasuk);
+            file << "ID: " << o.id << ", Nama: " << o.nama << ", No Telp : " << o.notelp << ", Masuk: "
+                 << 1900 + ltm->tm_year << "-"
+                 << setw(2) << setfill('0') << 1 + ltm->tm_mon << "-"
+                 << setw(2) << setfill('0') << ltm->tm_mday << " "
+                 << setw(2) << setfill('0') << ltm->tm_hour << ":"
+                 << setw(2) << setfill('0') << ltm->tm_min << ":"
+                 << setw(2) << setfill('0') << ltm->tm_sec << endl;
+            file.close();
+        } else {
+            cout << RED << "Gagal membuka file log!" << RESET << endl;
+        }
+    }
+
+    void dequeue() {
+        if (isEmpty()) {
+            cout << RED << "Antrian Kosong!" << RESET << endl;
+            return;
+        }
+
+        Orang keluar = data[front];
+        time_t waktu_keluar = time(0);
+        double durasi = difftime(waktu_keluar, keluar.waktuMasuk);
+
+        cout << BOLD GREEN << "ID: " << keluar.id << "\n";
+        cout << "Nama: " << keluar.nama << "\n";
+        cout << "Masuk: " << ctime(&keluar.waktuMasuk);
+        cout << "Keluar: " << ctime(&waktu_keluar);
+        cout << "Service Time: " << durasi << " detik\n" << RESET;
+        cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+
+        totalServiceTime += durasi;
+        totalServed++;
+        front++;
+
+        if (front > rear) {
+            front = rear = -1;
+        }
+    }
+
+    void tampilkanRataRata() {
+        if (totalServed == 0) {
+            cout << YELLOW << "Belum ada yang dilayani.\n" << RESET;
+            return;
+        }
+        double rata = totalServiceTime / totalServed;
+        cout << YELLOW << "Rata-rata service time: " << rata << " detik\n" << RESET;
+    }
+
+    void display() {
+        if (isEmpty()) {
+            cout << "Antrian Kosong\n";
+            return;
+        }
+
+        cout << YELLOW << "Isi antrian:\n";
+        for (int i = front; i <= rear; ++i) {
+            cout << BOLD GREEN << " - ID: " << data[i].id
+                 << ", Nama: " << data[i].nama
+                 << ", Masuk: " << ctime(&data[i].waktuMasuk) << RESET;
+        }
+    }
+};
+
+int main() {
+    Queue q;
+    int pilihan;
+    string nama, loop;
+
+    do {
+        system("cls");
+        cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl
+             << setfill(' ') << setw(30) << " " << BOLD BLUE << "Tugas 4 Pemrograman Berorientasi Objek\n"
+             << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+
+        cout << YELLOW << "1. Enqueue\n2. Dequeue\n3. Tampilkan\n4. Rata-rata Service Time\n5. Keluar\n" << GREEN << "Pilih (1/2/3/4/5) : " << RESET;
+        cin >> pilihan;
+        cin.ignore();
+        cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+
+        switch (pilihan) {
+            case 1:
+                q.enqueue();
+                system("pause");
+                break;
+            case 2:
+                q.dequeue();
+                system("pause");
+                break;
+            case 3:
+                q.display();
+                system("pause");
+                break;
+            case 4:
+                q.tampilkanRataRata();
+                system("pause");
+                break;
+            case 5:
+                cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl
+                     << setfill(' ') << setw(38) << " " << BOLD RED << "Program berhenti...\n"
+                     << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+                return 0;
+        }
+
+        cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+        cout << GREEN << "Apakah anda melanjutkan program? (Yes/No) " << RESET;
+        cin >> loop;
+
+        for (char &c : loop) {
+            c = tolower(c);
+        }
+    } while (loop != "no" && loop != "n");
+
+    cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl
+         << setfill(' ') << setw(38) << " " << BOLD RED << "Program berhenti...\n"
+         << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
+
+    return 0;
+}
