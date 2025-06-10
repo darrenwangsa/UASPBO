@@ -286,9 +286,10 @@ int main() {
         system("cls");
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl
              << setfill(' ') << setw(30) << " " << BOLD BLUE << "Tugas 4 Pemrograman Berorientasi Objek\n"
+             << setfill(' ') << setw(40) << " " << BOLD BLUE << "Antrian Donor Darah\n"
              << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
 
-        cout << YELLOW << "1. Enqueue\n2. Dequeue\n3. Tampilkan\n4. Rata-rata Service Time\n5. Keluar\n" << GREEN << "Pilih (1/2/3/4/5) : " << RESET;
+        cout << YELLOW << "1. Daftar Pasien\n2. Panggil Pasien\n3. Tampilkan Daftar Antrian\n4. Rata-rata Waktu Donor Darah\n5. Keluar\n" << GREEN << "Pilih (1/2/3/4/5) : " << RESET;
         cin >> pilihan;
         cin.ignore();
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
