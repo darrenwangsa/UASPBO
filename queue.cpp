@@ -56,6 +56,7 @@ public:
     }
 
     void enqueue() {
+        updateQueue();
         if (isFull()) {
             cout << RED << "Queue Penuh" << RESET << endl;
             return;
@@ -181,10 +182,10 @@ public:
         cout << BOLD CYAN << setfill('=') << setw(100) << "=" << RESET << endl << setfill(' ');
 
         if (file.is_open()) {
-            file << "ID: " << keluar.id << ", Nama: " << keluar.nama
-                << ", Waktu Masuk: " << ctime(&keluar.waktuMasuk)
-                << ", Waktu Keluar: " << ctime(&waktuKeluarTime)
-                << ", Service Time: " << jam << " jam " << sisaMenit << " menit " << sisaDetik << " detik\n";
+            file << "Nama: " << keluar.nama << endl
+                << "Waktu Masuk: " << ctime(&keluar.waktuMasuk)
+                << "Waktu Keluar: " << ctime(&waktuKeluarTime)
+                << "Service Time: " << jam << " jam " << sisaMenit << " menit " << sisaDetik << " detik\n" << endl;
             file.close();
         } else {
             cout << RED << "Gagal membuka file history!" << RESET << endl;
@@ -218,17 +219,47 @@ public:
 
 
     void tampilkanRataRata() {
-        if (totalServed == 0) {
-            cout << YELLOW << "Belum ada yang dilayani.\n" << RESET;
+        ifstream file("history.txt");
+        if (!file.is_open()) {
+            cout << RED << "Gagal membuka file history.txt!" << RESET << endl;
             return;
         }
-        double rata = totalServiceTime / totalServed;
-        int menit = rata / 60;
-        int jam = menit / 60;
-        int sisaMenit = menit % 60;
-        int sisaDetik = (int)rata % 60;
-        cout << YELLOW << "Rata-rata service time: "  << jam << " Jam " << menit << " Menit " << rata << " detik\n" << RESET;
+
+        string line;
+        int totalServiceDetik = 0;
+        int count = 0;
+
+        while (getline(file, line)) {
+            if (line.find("Service Time:") != string::npos) {
+                int jam, menit, detik;
+
+                // Format: Service Time: 0 jam 9 menit 26 detik
+                sscanf(line.c_str(), "Service Time: %d jam %d menit %d detik", &jam, &menit, &detik);
+
+                int totalDetik = (jam * 3600) + (menit * 60) + detik;
+
+                totalServiceDetik += totalDetik;
+                count++;
+            }
+        }
+
+        file.close();
+
+        if (count == 0) {
+            cout << YELLOW << "Belum ada data pelayanan di file history.txt\n" << RESET;
+            return;
+        }
+
+        int rataDetik = totalServiceDetik / count;
+
+        int rataJam = rataDetik / 3600;
+        int rataMenit = (rataDetik % 3600) / 60;
+        int sisaDetik = rataDetik % 60;
+
+        cout << YELLOW << "Rata-rata service time dari file: "
+            << rataJam << " Jam " << rataMenit << " Menit " << sisaDetik << " Detik\n" << RESET;
     }
+
 
     void display() {
         updateQueue();
